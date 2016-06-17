@@ -87,19 +87,7 @@ class Worksheet
     unicode_string @worksheet.name
   end
   def need_number? cell
-    if cell.is_a?(Numeric) && cell.abs > 0x1fffffff
-      true
-    elsif cell.is_a?(Float) and not cell.nan?
-      higher = cell * 100
-      if higher == higher.to_i
-        need_number? higher.to_i
-      else
-        test1, test2 = [cell * 100].pack(EIGHT_BYTE_DOUBLE).unpack('V2')
-        test1 > 0 || need_number?(test2)
-      end
-    else
-      false
-    end
+    false
   end
   def row_blocks
     # All cells in an Excel document are divided into blocks of 32 consecutive
@@ -216,23 +204,8 @@ class Worksheet
         end
       when TrueClass, FalseClass, Error
         write_boolerr row, idx
-      when String
+      when String, Numeric
         write_labelsst row, idx
-      when Numeric
-        ## RK encodes Floats with 30 significant bits, which is a bit more than
-        #  10^9. Not sure what is a good rule of thumb here, but it seems that
-        #  Decimal Numbers with more than 4 significant digits are not represented
-        #  with sufficient precision by RK
-        if need_number
-          write_number row, idx
-        elsif multiples
-          multiples.push cell
-        elsif nxt < row.size && row[nxt].is_a?(Numeric)
-          multiples = [cell]
-          first_idx = idx
-        else
-          write_rk row, idx
-        end
       when Formula
         write_formula row, idx
       when Date, Time
